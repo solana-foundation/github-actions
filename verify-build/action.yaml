@@ -40,6 +40,11 @@ inputs:
   vault-address:
     description: "The Squads vault address (required if use-squads is true)"
     required: false
+  base-image:
+    description: "Override solana-verify's --base-image. Must match
+      build-verified to keep the verify-PDA aligned with the built .so."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -85,6 +90,10 @@ runs:
           ARGS="$ARGS --remote"
         fi
 
+        if [ -n "${{ inputs.base-image }}" ]; then
+          ARGS="$ARGS --base-image ${{ inputs.base-image }}"
+        fi
+
         solana-verify verify-from-repo \
           --program-id ${{ inputs.program-id }} \
           --url ${{ inputs.rpc-url }} \
@@ -100,6 +109,11 @@ runs:
       run: |
         echo "=== Exporting PDA Transaction ==="
 
+        BASE_IMAGE_ARG=""
+        if [ -n "${{ inputs.base-image }}" ]; then
+          BASE_IMAGE_ARG="--base-image ${{ inputs.base-image }}"
+        fi
+
         # Get the last line which should be the base64 transaction
         TX=$(solana-verify export-pda-tx \
           ${{ inputs.repo-url }} \
@@ -108,6 +122,7 @@ runs:
           --commit-hash ${{ inputs.commit-hash }} \
           --url ${{ inputs.rpc-url }} \
           --library-name ${{ inputs.program }} \
+          $BASE_IMAGE_ARG \
           --encoding base64 | tail -n 1)
           
         # Verify we got a base64 string

@@ -45,6 +45,11 @@ inputs:
       build-verified to keep the verify-PDA aligned with the built .so."
     required: false
     default: ""
+  features:
+    description: "Comma-separated cargo features. Must match build-verified
+      to keep the verify-PDA aligned with the built .so."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -94,13 +99,19 @@ runs:
           ARGS="$ARGS --base-image ${{ inputs.base-image }}"
         fi
 
+        CARGO_ARGS=""
+        if [ -n "${{ inputs.features }}" ]; then
+          CARGO_ARGS="-- --features ${{ inputs.features }}"
+        fi
+
         solana-verify verify-from-repo \
           --program-id ${{ inputs.program-id }} \
           --url ${{ inputs.rpc-url }} \
           --library-name ${{ inputs.program }} \
           -k ./deploy-keypair.json \
           $ARGS \
-          ${{ inputs.repo-url }}
+          ${{ inputs.repo-url }} \
+          $CARGO_ARGS
 
     - name: Export PDA Transaction
       id: export-pda
@@ -114,6 +125,11 @@ runs:
           BASE_IMAGE_ARG="--base-image ${{ inputs.base-image }}"
         fi
 
+        CARGO_ARGS=""
+        if [ -n "${{ inputs.features }}" ]; then
+          CARGO_ARGS="-- --features ${{ inputs.features }}"
+        fi
+
         # Get the last line which should be the base64 transaction
         TX=$(solana-verify export-pda-tx \
           ${{ inputs.repo-url }} \
@@ -123,7 +139,8 @@ runs:
           --url ${{ inputs.rpc-url }} \
           --library-name ${{ inputs.program }} \
           $BASE_IMAGE_ARG \
-          --encoding base64 | tail -n 1)
+          --encoding base64 \
+          $CARGO_ARGS | tail -n 1)
           
         # Verify we got a base64 string
         if [[ ! "$TX" =~ ^[A-Za-z0-9+/=]*$ ]]; then

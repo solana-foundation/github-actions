@@ -328,7 +328,7 @@ These actions use the [program-metadata](https://github.com/solana-program/progr
 - `build-anchor`: Specialized Anchor program builder
 - `program-upgrade`: Handles the exteding of the program account in case the program is getting bigger and either sets the buffer or skips that in case of squads deploy
 - `idl-upload`: Either sets the Anchor IDL buffer or skips that in case of squads deploy
-- `verify-build`: Verifies on-chain programs match source using solana-verify andthe osec api
+- `verify-build`: Writes the signer's verify PDA and queues a remote build with `solana-verify remote submit-job` (mainnet only), recording the hash before deploy so the buffer is resolvable via the osec api; with squads also exports the program-authority PDA tx (`pda_tx`) for the multisig
 
 ### Squads buffer-only release
 

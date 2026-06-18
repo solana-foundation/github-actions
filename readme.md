@@ -405,6 +405,31 @@ npx ts-node scripts/squad-closebuffer.ts \
  --program "BhV84MZrRnEvtWLdWMRJGJr1GbusxfVMHAwc3pq92g4z"
 ```
 
+# Release v0.2.11
+
+## Repository
+
+- Move repository references from `solana-developers` to `solana-foundation`
+
+## New Features
+
+- `cu-benchmark`: posts PR comments with per-instruction compute-unit deltas vs a committed baseline
+- `npm-publish`: publishes TypeScript packages to npm with pnpm using Trusted Publishing (OIDC, no `NODE_AUTH_TOKEN`)
+- `cargo-publish`: publishes Rust crates to crates.io using Trusted Publishing
+- `prepare-squads-release`: prepares program and metadata buffers with Squads vault authority, without creating a Squads proposal from CI
+
+## Improvements
+
+- Faster CLI installs in `setup-all` via `taiki-e/install-action`
+- More resilient program buffer writes with partial resume, diagnostics, and configurable RPC/TPU transport
+- Hardened `cargo-publish` and `npm-publish` validation and error handling
+
+## Documentation
+
+- Added README usage examples for publishing and Squads buffer-only releases
+- Added `cu-benchmark` README with report contract and workflow example
+- Added migration notice for the `solana-foundation` org move
+
 # Release v0.2.7
 
 ## Pass library name to export pda tx

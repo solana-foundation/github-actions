@@ -81,7 +81,7 @@ runs:
 
     - name: Write program buffer
       id: write-program-buffer
-      uses: solana-developers/github-actions/write-program-buffer@e15ede4246abd98badb4701d34394865e382a2de
+      uses: solana-foundation/github-actions/write-program-buffer@e15ede4246abd98badb4701d34394865e382a2de
       with:
         program-id: ${{ inputs.program-id }}
         program: ${{ inputs.program }}
@@ -97,7 +97,7 @@ runs:
     - name: Write metadata buffer
       id: write-metadata-buffer
       if: inputs.metadata-path != ''
-      uses: solana-developers/github-actions/write-metadata-buffer@e15ede4246abd98badb4701d34394865e382a2de
+      uses: solana-foundation/github-actions/write-metadata-buffer@e15ede4246abd98badb4701d34394865e382a2de
       with:
         idl-path: ${{ inputs.metadata-path }}
         rpc-url: ${{ inputs.rpc-url }}
@@ -108,7 +108,7 @@ runs:
     - name: Export verify PDA transaction
       id: export-verify-pda
       if: inputs.export-verify-pda == 'true'
-      uses: solana-developers/github-actions/verify-build@15e43c56b2ad2047dde732d807082570de2b8486
+      uses: solana-foundation/github-actions/verify-build@15e43c56b2ad2047dde732d807082570de2b8486
       with:
         program-id: ${{ inputs.program-id }}
         program: ${{ inputs.program }}

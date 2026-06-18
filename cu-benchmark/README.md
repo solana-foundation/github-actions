@@ -52,7 +52,7 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: ./.github/actions/setup
       - run: just test-and-benchmark        # must write cu_report.md (see contract)
-      - uses: solana-developers/github-actions/cu-benchmark@vX
+      - uses: solana-foundation/github-actions/cu-benchmark@vX
         with:
           commit-baseline: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
 ```

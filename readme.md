@@ -3,6 +3,8 @@
 This repository provides GitHub Actions for managing Solana program deployments and verification.
 It is highly recommended to use the squads integration for program deployments.
 
+> **Repository location:** This repo lives at [`solana-foundation/github-actions`](https://github.com/solana-foundation/github-actions). If you still reference `solana-developers/github-actions` in a workflow, update the `uses:` path to `solana-foundation/github-actions` (tags and commit SHAs stay the same). GitHub redirects the old URL after a transfer, but explicit updates are recommended.
+
 ### Features
 
 - ✅ Automated program builds
@@ -16,7 +18,7 @@ It is highly recommended to use the squads integration for program deployments.
 
 ### How to use
 
-The easiest way to use the github actions is using one of the [reusable workflows](https://github.com/solana-developers/github-workflows).
+The easiest way to use the github actions is using one of the [reusable workflows](https://github.com/solana-foundation/github-workflows).
 You can also follow this [Video Walkthrough](https://youtu.be/h-ngRgWW_IM)
 
 There are three examples:
@@ -125,7 +127,7 @@ Single crate:
   working-directory: path/to/package
   run: cargo build
 
-- uses: solana-developers/github-actions/cargo-publish@<release-tag-or-commit-sha>
+- uses: solana-foundation/github-actions/cargo-publish@<release-tag-or-commit-sha>
   with:
     package: my-crate
     working-directory: path/to/package
@@ -140,7 +142,7 @@ Workspace package:
   working-directory: path/to/workspace
   run: cargo build --workspace
 
-- uses: solana-developers/github-actions/cargo-publish@<release-tag-or-commit-sha>
+- uses: solana-foundation/github-actions/cargo-publish@<release-tag-or-commit-sha>
   with:
     package: my-workspace-crate
     working-directory: path/to/workspace
@@ -157,7 +159,7 @@ Generated client:
   working-directory: path/to/generated-crate
   run: cargo build
 
-- uses: solana-developers/github-actions/cargo-publish@<release-tag-or-commit-sha>
+- uses: solana-foundation/github-actions/cargo-publish@<release-tag-or-commit-sha>
   with:
     package: my-generated-crate
     working-directory: path/to/generated-crate
@@ -215,7 +217,7 @@ Single package:
 - name: Build package
   run: pnpm --filter "@scope/my-package" build
 
-- uses: solana-developers/github-actions/npm-publish@<release-tag-or-commit-sha>
+- uses: solana-foundation/github-actions/npm-publish@<release-tag-or-commit-sha>
   with:
     package: "@scope/my-package"
     package-directory: clients/typescript
@@ -235,7 +237,7 @@ Generated client:
 - name: Build generated client
   run: pnpm --filter "@scope/my-client" build
 
-- uses: solana-developers/github-actions/npm-publish@<release-tag-or-commit-sha>
+- uses: solana-foundation/github-actions/npm-publish@<release-tag-or-commit-sha>
   with:
     package: "@scope/my-client"
     package-directory: clients/typescript
@@ -336,7 +338,7 @@ Pin this action to a released tag or commit SHA instead of `main`.
 
 ```yaml
 - name: Prepare Squads release buffers
-  uses: solana-developers/github-actions/prepare-squads-release@<release-tag-or-commit-sha>
+  uses: solana-foundation/github-actions/prepare-squads-release@<release-tag-or-commit-sha>
   with:
     program: ${{ env.PROGRAM }}
     program-id: ${{ env.PROGRAM_ID }}

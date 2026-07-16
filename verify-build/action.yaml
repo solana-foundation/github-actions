@@ -64,84 +64,109 @@ runs:
 
     - name: Debug Environment
       shell: bash
+      env:
+        EVENT_NETWORK: ${{ github.event.inputs.network }}
+        EVENT_VERIFY: ${{ github.event.inputs.verify }}
+        HAS_KEYPAIR: ${{ inputs.keypair != '' }}
       run: |
-        echo "Network: ${{ github.event.inputs.network }}"
-        echo "Verify: ${{ github.event.inputs.verify }}"
-        echo "Has keypair: ${{ inputs.keypair != '' }}"
+        echo "Network: $EVENT_NETWORK"
+        echo "Verify: $EVENT_VERIFY"
+        echo "Has keypair: $HAS_KEYPAIR"
 
     - name: Verify Build
       shell: bash
       if: inputs.use-squads == 'false'
+      env:
+        SKIP_BUILD: ${{ inputs.skip-build }}
+        SKIP_PROMPT: ${{ inputs.skip-prompt }}
+        MOUNT_PATH: ${{ inputs.mount-path }}
+        COMMIT_HASH: ${{ inputs.commit-hash }}
+        NETWORK: ${{ inputs.network }}
+        BASE_IMAGE: ${{ inputs.base-image }}
+        FEATURES_INPUT: ${{ inputs.features }}
+        PROGRAM_ID: ${{ inputs.program-id }}
+        RPC_URL: ${{ inputs.rpc-url }}
+        PROGRAM: ${{ inputs.program }}
+        REPO_URL: ${{ inputs.repo-url }}
       run: |
         ARGS=""
 
-        if [ "${{ inputs.skip-build }}" = "true" ]; then
+        if [ "$SKIP_BUILD" = "true" ]; then
           ARGS="$ARGS --skip-build"
         fi
 
-        if [ "${{ inputs.skip-prompt }}" = "true" ]; then
+        if [ "$SKIP_PROMPT" = "true" ]; then
           ARGS="$ARGS --skip-prompt"
         fi
 
-        if [ -n "${{ inputs.mount-path }}" ]; then
-          ARGS="$ARGS --mount-path ${{ inputs.mount-path }}"
+        if [ -n "$MOUNT_PATH" ]; then
+          ARGS="$ARGS --mount-path $MOUNT_PATH"
         fi
 
-        if [ -n "${{ inputs.commit-hash }}" ]; then
-          ARGS="$ARGS --commit-hash ${{ inputs.commit-hash }}"
+        if [ -n "$COMMIT_HASH" ]; then
+          ARGS="$ARGS --commit-hash $COMMIT_HASH"
         fi
 
-        if [ "${{ inputs.network }}" = "mainnet" ]; then
+        if [ "$NETWORK" = "mainnet" ]; then
           ARGS="$ARGS --remote"
         fi
 
-        if [ -n "${{ inputs.base-image }}" ]; then
-          ARGS="$ARGS --base-image ${{ inputs.base-image }}"
+        if [ -n "$BASE_IMAGE" ]; then
+          ARGS="$ARGS --base-image $BASE_IMAGE"
         fi
 
         CARGO_ARGS=""
-        if [ -n "${{ inputs.features }}" ]; then
-          CARGO_ARGS="-- --features ${{ inputs.features }}"
+        if [ -n "$FEATURES_INPUT" ]; then
+          CARGO_ARGS="-- --features $FEATURES_INPUT"
         fi
 
         solana-verify verify-from-repo \
-          --program-id ${{ inputs.program-id }} \
-          --url ${{ inputs.rpc-url }} \
-          --library-name ${{ inputs.program }} \
+          --program-id "$PROGRAM_ID" \
+          --url "$RPC_URL" \
+          --library-name "$PROGRAM" \
           -k ./deploy-keypair.json \
           $ARGS \
-          ${{ inputs.repo-url }} \
+          "$REPO_URL" \
           $CARGO_ARGS
 
     - name: Export PDA Transaction
       id: export-pda
       if: inputs.use-squads == 'true'
       shell: bash
+      env:
+        BASE_IMAGE: ${{ inputs.base-image }}
+        FEATURES_INPUT: ${{ inputs.features }}
+        REPO_URL: ${{ inputs.repo-url }}
+        PROGRAM_ID: ${{ inputs.program-id }}
+        VAULT_ADDRESS: ${{ inputs.vault-address }}
+        COMMIT_HASH: ${{ inputs.commit-hash }}
+        RPC_URL: ${{ inputs.rpc-url }}
+        PROGRAM: ${{ inputs.program }}
       run: |
         echo "=== Exporting PDA Transaction ==="
 
         BASE_IMAGE_ARG=""
-        if [ -n "${{ inputs.base-image }}" ]; then
-          BASE_IMAGE_ARG="--base-image ${{ inputs.base-image }}"
+        if [ -n "$BASE_IMAGE" ]; then
+          BASE_IMAGE_ARG="--base-image $BASE_IMAGE"
         fi
 
         CARGO_ARGS=""
-        if [ -n "${{ inputs.features }}" ]; then
-          CARGO_ARGS="-- --features ${{ inputs.features }}"
+        if [ -n "$FEATURES_INPUT" ]; then
+          CARGO_ARGS="-- --features $FEATURES_INPUT"
         fi
 
         # Get the last line which should be the base64 transaction
         TX=$(solana-verify export-pda-tx \
-          ${{ inputs.repo-url }} \
-          --program-id ${{ inputs.program-id }} \
-          --uploader ${{ inputs.vault-address }} \
-          --commit-hash ${{ inputs.commit-hash }} \
-          --url ${{ inputs.rpc-url }} \
-          --library-name ${{ inputs.program }} \
+          "$REPO_URL" \
+          --program-id "$PROGRAM_ID" \
+          --uploader "$VAULT_ADDRESS" \
+          --commit-hash "$COMMIT_HASH" \
+          --url "$RPC_URL" \
+          --library-name "$PROGRAM" \
           $BASE_IMAGE_ARG \
           --encoding base64 \
           $CARGO_ARGS | tail -n 1)
-          
+
         # Verify we got a base64 string
         if [[ ! "$TX" =~ ^[A-Za-z0-9+/=]*$ ]]; then
           echo "Error: Invalid base64 transaction"

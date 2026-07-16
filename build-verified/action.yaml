@@ -25,14 +25,18 @@ runs:
 
     - name: Build Verified
       shell: bash
+      env:
+        FEATURES_INPUT: ${{ inputs.features }}
+        BASE_IMAGE: ${{ inputs.base-image }}
+        PROGRAM: ${{ inputs.program }}
       run: |
-        FEATURES="${{ inputs.features }}"
-        if [ -n "$FEATURES" ]; then
-          FEATURES="--features $FEATURES"
+        FEATURES=""
+        if [ -n "$FEATURES_INPUT" ]; then
+          FEATURES="--features $FEATURES_INPUT"
         fi
         BASE_IMAGE_ARG=""
-        if [ -n "${{ inputs.base-image }}" ]; then
-          BASE_IMAGE_ARG="--base-image ${{ inputs.base-image }}"
+        if [ -n "$BASE_IMAGE" ]; then
+          BASE_IMAGE_ARG="--base-image $BASE_IMAGE"
         fi
         # Run solana-verify directly without Docker
-        ~/.cargo/bin/solana-verify build $BASE_IMAGE_ARG --library-name ${{ inputs.program }} -- $FEATURES
+        ~/.cargo/bin/solana-verify build $BASE_IMAGE_ARG --library-name "$PROGRAM" -- $FEATURES

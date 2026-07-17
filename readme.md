@@ -308,7 +308,7 @@ These actions use the [program-metadata](https://github.com/solana-program/progr
     - `close-buffer`: Address to receive rent when closing buffer, or "true" for payer
     - `priority-fees`: Priority fees in micro-lamports (default: 100000)
     - `export`: Export transactions for multisig (provide vault address)
-    - `export-encoding`: Encoding for exported transactions (default: base64)
+    - `export-encoding`: Encoding for exported transactions (default: base58)
   - Outputs (only set when `export` is provided):
     - `tx`: Exported transactions in the chosen encoding, one per line
 

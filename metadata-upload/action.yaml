@@ -33,7 +33,7 @@ inputs:
   export-encoding:
     description: "Encoding for exported transactions (none, utf8, base58, base64)"
     required: false
-    default: "base64"
+    default: "base58"
 
 outputs:
   tx:

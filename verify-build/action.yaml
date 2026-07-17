@@ -155,6 +155,27 @@ runs:
           CARGO_ARGS="-- --features $FEATURES_INPUT"
         fi
 
+        # Get the last line which should be the base58 transaction
+        TX_BASE58=$(solana-verify export-pda-tx \
+          "$REPO_URL" \
+          --program-id "$PROGRAM_ID" \
+          --uploader "$VAULT_ADDRESS" \
+          --commit-hash "$COMMIT_HASH" \
+          --url "$RPC_URL" \
+          --library-name "$PROGRAM" \
+          $BASE_IMAGE_ARG \
+          --encoding base58 \
+          $CARGO_ARGS | tail -n 1)
+
+        # Verify we got a base58 string
+        if [[ ! "$TX_BASE58" =~ ^[1-9A-HJ-NP-Za-km-z]*$ ]]; then
+          echo "Error: Invalid base58 transaction"
+          echo "Got: $TX_BASE58"
+          exit 1
+        fi
+
+        echo "tx_base58=$TX_BASE58" >> $GITHUB_OUTPUT
+
         # Get the last line which should be the base64 transaction
         TX=$(solana-verify export-pda-tx \
           "$REPO_URL" \
@@ -185,3 +206,6 @@ outputs:
   pda_tx:
     description: "PDA verification transaction (only set if use-squads is true)"
     value: ${{ steps.export-pda.outputs.tx }}
+  pda_tx_base58:
+    description: "Base58-encoded PDA verification transaction (only set if use-squads is true)"
+    value: ${{ steps.export-pda.outputs.tx_base58 }}

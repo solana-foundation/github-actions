@@ -30,10 +30,14 @@ inputs:
   export:
     description: "Export transactions instead of executing (provide a Squads vault address to override authority)"
     required: false
-  export-encoding:
-    description: "Encoding for exported transactions (none, utf8, base58, base64)"
-    required: false
-    default: "base64"
+
+outputs:
+  tx_base58:
+    description: "Base58-encoded exported transactions, one per line (only set if export is provided)"
+    value: ${{ steps.upload.outputs.tx_base58 }}
+  tx_base64:
+    description: "Base64-encoded exported transactions, one per line (only set if export is provided)"
+    value: ${{ steps.upload.outputs.tx_base64 }}
 
 runs:
   using: "composite"
@@ -45,6 +49,7 @@ runs:
         DEPLOY_KEYPAIR: ${{ inputs.keypair }}
 
     - name: Upload metadata
+      id: upload
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
       with:
         timeout_minutes: 10
@@ -78,13 +83,33 @@ runs:
             fi
           fi
 
-          if [ -n "${{ inputs.export }}" ]; then
-            CMD="$CMD --export ${{ inputs.export }}"
-            CMD="$CMD --export-encoding ${{ inputs.export-encoding }}"
+          if [ -z "${{ inputs.export }}" ]; then
+            echo "Running: $CMD"
+            NO_COLOR=1 $CMD
+            exit 0
           fi
 
-          echo "Running: $CMD"
-          NO_COLOR=1 $CMD
+          export_txs() {
+            ENCODING="$1"
+            echo "Running: $CMD --export ${{ inputs.export }} --export-encoding $ENCODING"
+            OUTPUT=$(NO_COLOR=1 $CMD --export "${{ inputs.export }}" --export-encoding "$ENCODING")
+            echo "$OUTPUT"
+
+            TXS=$(echo "$OUTPUT" | awk '/^\[Transaction #[0-9]+\]$/{getline; print}')
+            if [ -z "$TXS" ]; then
+              echo "Error: No exported transactions found in $ENCODING output"
+              exit 1
+            fi
+
+            {
+              echo "tx_${ENCODING}<<TX_EOF"
+              echo "$TXS"
+              echo "TX_EOF"
+            } >> "$GITHUB_OUTPUT"
+          }
+
+          export_txs base58
+          export_txs base64
 
     - name: Cleanup
       if: always()

@@ -30,14 +30,15 @@ inputs:
   export:
     description: "Export transactions instead of executing (provide a Squads vault address to override authority)"
     required: false
+  export-encoding:
+    description: "Encoding for exported transactions (none, utf8, base58, base64)"
+    required: false
+    default: "base64"
 
 outputs:
-  tx_base58:
-    description: "Base58-encoded exported transactions, one per line (only set if export is provided)"
-    value: ${{ steps.upload.outputs.tx_base58 }}
-  tx_base64:
-    description: "Base64-encoded exported transactions, one per line (only set if export is provided)"
-    value: ${{ steps.upload.outputs.tx_base64 }}
+  tx:
+    description: "Exported transactions in the chosen encoding, one per line (only set if export is provided)"
+    value: ${{ steps.upload.outputs.tx }}
 
 runs:
   using: "composite"
@@ -89,27 +90,24 @@ runs:
             exit 0
           fi
 
-          export_txs() {
-            ENCODING="$1"
-            echo "Running: $CMD --export ${{ inputs.export }} --export-encoding $ENCODING"
-            OUTPUT=$(NO_COLOR=1 $CMD --export "${{ inputs.export }}" --export-encoding "$ENCODING")
-            echo "$OUTPUT"
+          CMD="$CMD --export ${{ inputs.export }}"
+          CMD="$CMD --export-encoding ${{ inputs.export-encoding }}"
 
-            TXS=$(echo "$OUTPUT" | awk '/^\[Transaction #[0-9]+\]$/{getline; print}')
-            if [ -z "$TXS" ]; then
-              echo "Error: No exported transactions found in $ENCODING output"
-              exit 1
-            fi
+          echo "Running: $CMD"
+          OUTPUT=$(NO_COLOR=1 $CMD)
+          echo "$OUTPUT"
 
-            {
-              echo "tx_${ENCODING}<<TX_EOF"
-              echo "$TXS"
-              echo "TX_EOF"
-            } >> "$GITHUB_OUTPUT"
-          }
+          TXS=$(echo "$OUTPUT" | awk '/^\[Transaction #[0-9]+\]$/{getline; print}')
+          if [ -z "$TXS" ]; then
+            echo "Error: No exported transactions found in output"
+            exit 1
+          fi
 
-          export_txs base58
-          export_txs base64
+          {
+            echo "tx<<TX_EOF"
+            echo "$TXS"
+            echo "TX_EOF"
+          } >> "$GITHUB_OUTPUT"
 
     - name: Cleanup
       if: always()

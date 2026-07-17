@@ -89,7 +89,12 @@ runs:
         echo "Current size: $CURRENT_SIZE"
 
         if [ "$REQUIRED_SIZE" -gt "$CURRENT_SIZE" ]; then
+          MIN_EXTEND_SIZE=10240
           EXTEND_SIZE=$((REQUIRED_SIZE - CURRENT_SIZE))
+          if [ "$EXTEND_SIZE" -lt "$MIN_EXTEND_SIZE" ]; then
+            echo "Extend size of $EXTEND_SIZE bytes is below the SIMD-0431 minimum, extending by $MIN_EXTEND_SIZE bytes instead"
+            EXTEND_SIZE=$MIN_EXTEND_SIZE
+          fi
           echo "Program needs to be extended by $EXTEND_SIZE bytes"
           solana program extend ${{ inputs.program-id }} $EXTEND_SIZE \
             --keypair ./deploy-keypair.json \

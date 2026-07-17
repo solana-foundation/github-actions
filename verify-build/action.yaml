@@ -173,9 +173,9 @@ runs:
           $CARGO_ARGS | tail -n 1)
 
         if [ "$EXPORT_ENCODING" = "base58" ]; then
-          PATTERN='^[1-9A-HJ-NP-Za-km-z]*$'
+          PATTERN='^[1-9A-HJ-NP-Za-km-z]+$'
         else
-          PATTERN='^[A-Za-z0-9+/=]*$'
+          PATTERN='^[A-Za-z0-9+/=]+$'
         fi
 
         if [[ ! "$TX" =~ $PATTERN ]]; then

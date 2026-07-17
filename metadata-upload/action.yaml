@@ -38,7 +38,7 @@ inputs:
 outputs:
   tx:
     description: "Exported transactions in the chosen encoding, one per line (only set if export is provided)"
-    value: ${{ steps.upload.outputs.tx }}
+    value: ${{ steps.parse-export.outputs.tx }}
 
 runs:
   using: "composite"
@@ -50,7 +50,6 @@ runs:
         DEPLOY_KEYPAIR: ${{ inputs.keypair }}
 
     - name: Upload metadata
-      id: upload
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
       with:
         timeout_minutes: 10
@@ -94,22 +93,27 @@ runs:
           CMD="$CMD --export-encoding ${{ inputs.export-encoding }}"
 
           echo "Running: $CMD"
-          OUTPUT=$(NO_COLOR=1 $CMD)
-          echo "$OUTPUT"
+          set -o pipefail
+          NO_COLOR=1 $CMD | tee metadata-export.out
 
-          TXS=$(echo "$OUTPUT" | awk '/^\[Transaction #[0-9]+\]$/{getline; print}')
-          if [ -z "$TXS" ]; then
-            echo "Error: No exported transactions found in output"
-            exit 1
-          fi
+    - name: Parse exported transactions
+      id: parse-export
+      if: inputs.export != ''
+      shell: bash
+      run: |
+        TXS=$(awk '/^\[Transaction #[0-9]+\]$/{getline; print}' metadata-export.out)
+        if [ -z "$TXS" ]; then
+          echo "Error: No exported transactions found in output"
+          exit 1
+        fi
 
-          {
-            echo "tx<<TX_EOF"
-            echo "$TXS"
-            echo "TX_EOF"
-          } >> "$GITHUB_OUTPUT"
+        {
+          echo "tx<<TX_EOF"
+          echo "$TXS"
+          echo "TX_EOF"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Cleanup
       if: always()
       shell: bash
-      run: rm -f ./deploy-keypair.json
+      run: rm -f ./deploy-keypair.json metadata-export.out

@@ -50,6 +50,10 @@ inputs:
       to keep the verify-PDA aligned with the built .so."
     required: false
     default: ""
+  export-encoding:
+    description: "Encoding for the exported PDA transaction (base58, base64)"
+    required: false
+    default: "base58"
 
 runs:
   using: "composite"
@@ -142,6 +146,7 @@ runs:
         COMMIT_HASH: ${{ inputs.commit-hash }}
         RPC_URL: ${{ inputs.rpc-url }}
         PROGRAM: ${{ inputs.program }}
+        EXPORT_ENCODING: ${{ inputs.export-encoding }}
       run: |
         echo "=== Exporting PDA Transaction ==="
 
@@ -155,28 +160,7 @@ runs:
           CARGO_ARGS="-- --features $FEATURES_INPUT"
         fi
 
-        # Get the last line which should be the base58 transaction
-        TX_BASE58=$(solana-verify export-pda-tx \
-          "$REPO_URL" \
-          --program-id "$PROGRAM_ID" \
-          --uploader "$VAULT_ADDRESS" \
-          --commit-hash "$COMMIT_HASH" \
-          --url "$RPC_URL" \
-          --library-name "$PROGRAM" \
-          $BASE_IMAGE_ARG \
-          --encoding base58 \
-          $CARGO_ARGS | tail -n 1)
-
-        # Verify we got a base58 string
-        if [[ ! "$TX_BASE58" =~ ^[1-9A-HJ-NP-Za-km-z]*$ ]]; then
-          echo "Error: Invalid base58 transaction"
-          echo "Got: $TX_BASE58"
-          exit 1
-        fi
-
-        echo "tx_base58=$TX_BASE58" >> $GITHUB_OUTPUT
-
-        # Get the last line which should be the base64 transaction
+        # Get the last line which should be the encoded transaction
         TX=$(solana-verify export-pda-tx \
           "$REPO_URL" \
           --program-id "$PROGRAM_ID" \
@@ -185,12 +169,17 @@ runs:
           --url "$RPC_URL" \
           --library-name "$PROGRAM" \
           $BASE_IMAGE_ARG \
-          --encoding base64 \
+          --encoding "$EXPORT_ENCODING" \
           $CARGO_ARGS | tail -n 1)
 
-        # Verify we got a base64 string
-        if [[ ! "$TX" =~ ^[A-Za-z0-9+/=]*$ ]]; then
-          echo "Error: Invalid base64 transaction"
+        if [ "$EXPORT_ENCODING" = "base58" ]; then
+          PATTERN='^[1-9A-HJ-NP-Za-km-z]*$'
+        else
+          PATTERN='^[A-Za-z0-9+/=]*$'
+        fi
+
+        if [[ ! "$TX" =~ $PATTERN ]]; then
+          echo "Error: Invalid $EXPORT_ENCODING transaction"
           echo "Got: $TX"
           exit 1
         fi
@@ -204,8 +193,5 @@ runs:
 
 outputs:
   pda_tx:
-    description: "PDA verification transaction (only set if use-squads is true)"
+    description: "PDA verification transaction in the chosen encoding (only set if use-squads is true)"
     value: ${{ steps.export-pda.outputs.tx }}
-  pda_tx_base58:
-    description: "Base58-encoded PDA verification transaction (only set if use-squads is true)"
-    value: ${{ steps.export-pda.outputs.tx_base58 }}

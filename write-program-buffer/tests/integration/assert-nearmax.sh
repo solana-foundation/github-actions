@@ -16,7 +16,8 @@ fail() {
 [ -n "${PROGRAM_ID:-}" ] || fail "PROGRAM_ID env not set"
 [ -n "${PRE_LEN:-}" ] || fail "PRE_LEN env not set"
 
-POST_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1)
+POST_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1 || true)
+[ -n "$POST_LEN" ] || fail "could not read data length of program $PROGRAM_ID"
 [ "$POST_LEN" -eq "$MAX_PROGRAM_SIZE" ] || fail "program data length is $POST_LEN, expected the exact maximum $MAX_PROGRAM_SIZE"
 echo "Program extended from $PRE_LEN to $POST_LEN (exact headroom of $((POST_LEN - PRE_LEN)) bytes)"
 

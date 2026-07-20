@@ -20,7 +20,8 @@ rm -f "$DUMP"
 
 BUFFER_INFO=$(solana program show "$BUFFER" -u "$RPC_URL")
 echo "$BUFFER_INFO"
-AUTHORITY=$(echo "$BUFFER_INFO" | grep "Authority:" | awk '{print $2}')
+AUTHORITY=$(echo "$BUFFER_INFO" | grep "Authority:" | awk '{print $2}' || true)
+[ -n "$AUTHORITY" ] || fail "could not read authority of buffer $BUFFER"
 [ "$AUTHORITY" = "$DEPLOYER" ] || fail "buffer authority is $AUTHORITY, expected deployer $DEPLOYER"
 
 ABSENCE_CHECK=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" 2>&1 || true)

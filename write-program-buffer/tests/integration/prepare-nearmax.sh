@@ -46,11 +46,15 @@ solana program deploy "$FIXTURES_DIR/program-small.so" \
   --commitment confirmed
 
 read_data_len() {
-  solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1
+  solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1 || true
 }
 
 for i in 1 2 3; do
   CURRENT_LEN=$(read_data_len)
+  if [ -z "$CURRENT_LEN" ]; then
+    echo "Could not read program data length for $PROGRAM_ID" >&2
+    exit 1
+  fi
   REMAINING=$((TARGET_CURRENT - CURRENT_LEN))
   if [ "$REMAINING" -le 0 ]; then
     break
@@ -66,6 +70,10 @@ for i in 1 2 3; do
 done
 
 PRE_LEN=$(read_data_len)
+if [ -z "$PRE_LEN" ]; then
+  echo "Could not read program data length for $PROGRAM_ID" >&2
+  exit 1
+fi
 if [ "$PRE_LEN" -ne "$TARGET_CURRENT" ]; then
   echo "Setup failed: program data length is $PRE_LEN, expected $TARGET_CURRENT" >&2
   exit 1

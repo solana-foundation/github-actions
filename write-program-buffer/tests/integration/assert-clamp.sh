@@ -14,7 +14,8 @@ fail() {
 [ -n "${PROGRAM_ID:-}" ] || fail "PROGRAM_ID env not set"
 [ -n "${PRE_LEN:-}" ] || fail "PRE_LEN env not set"
 
-POST_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1)
+POST_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1 || true)
+[ -n "$POST_LEN" ] || fail "could not read data length of program $PROGRAM_ID"
 GROWTH=$((POST_LEN - PRE_LEN))
 [ "$GROWTH" -eq "$MIN_EXTEND_SIZE" ] || fail "program grew by $GROWTH bytes, expected exactly $MIN_EXTEND_SIZE"
 

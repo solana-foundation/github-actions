@@ -15,7 +15,8 @@ fail() {
 
 BUFFER_INFO=$(solana program show "$BUFFER" -u "$RPC_URL")
 echo "$BUFFER_INFO"
-AUTHORITY=$(echo "$BUFFER_INFO" | grep "Authority:" | awk '{print $2}')
+AUTHORITY=$(echo "$BUFFER_INFO" | grep "Authority:" | awk '{print $2}' || true)
+[ -n "$AUTHORITY" ] || fail "could not read authority of buffer $BUFFER"
 [ "$AUTHORITY" = "$BUFFER_AUTHORITY" ] || fail "buffer authority is $AUTHORITY, expected $BUFFER_AUTHORITY"
 [ "$AUTHORITY" != "$DEPLOYER" ] || fail "buffer authority still equals the deployer"
 

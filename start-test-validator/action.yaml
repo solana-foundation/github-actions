@@ -24,7 +24,7 @@ runs:
   steps:
     - name: Start validator
       id: start
-      shell: bash
+      shell: bash -euo pipefail {0}
       env:
         LEDGER_DIR_INPUT: ${{ inputs.ledger-dir }}
       run: |

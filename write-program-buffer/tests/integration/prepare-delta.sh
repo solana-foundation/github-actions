@@ -35,7 +35,7 @@ solana program deploy "$FIXTURES_DIR/program-small.so" \
   -u "$RPC_URL" -k "$SCENARIO_DIR/deployer.json" \
   --commitment confirmed
 
-PRE_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1)
+PRE_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1 || true)
 if [ -z "$PRE_LEN" ]; then
   echo "Could not read deployed program size" >&2
   exit 1

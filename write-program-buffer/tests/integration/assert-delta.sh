@@ -18,7 +18,8 @@ REQUIRED_SIZE=$(wc -c < "$ARTIFACT" | tr -d ' ')
 EXPECTED_GROWTH=$((REQUIRED_SIZE - PRE_LEN))
 [ "$EXPECTED_GROWTH" -gt "$MIN_EXTEND_SIZE" ] || fail "scenario setup invalid: expected growth $EXPECTED_GROWTH must exceed $MIN_EXTEND_SIZE"
 
-POST_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1)
+POST_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1 || true)
+[ -n "$POST_LEN" ] || fail "could not read data length of program $PROGRAM_ID"
 GROWTH=$((POST_LEN - PRE_LEN))
 [ "$GROWTH" -eq "$EXPECTED_GROWTH" ] || fail "program grew by $GROWTH bytes, expected the exact delta $EXPECTED_GROWTH"
 

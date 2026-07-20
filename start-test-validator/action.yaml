@@ -1,0 +1,57 @@
+name: "Start Test Validator"
+description: "Starts a local solana-test-validator in the background and waits until it is healthy"
+
+inputs:
+  ledger-dir:
+    description: "Ledger directory (defaults to <runner temp>/test-ledger)"
+    required: false
+    default: ""
+  max-attempts:
+    description: "Maximum health check attempts, roughly one per second"
+    required: false
+    default: "60"
+
+outputs:
+  rpc-url:
+    description: "RPC URL of the started validator"
+    value: ${{ steps.start.outputs.rpc-url }}
+  ledger-dir:
+    description: "Ledger directory of the started validator"
+    value: ${{ steps.start.outputs.ledger-dir }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Start validator
+      id: start
+      shell: bash
+      env:
+        LEDGER_DIR_INPUT: ${{ inputs.ledger-dir }}
+      run: |
+        RPC_URL="http://127.0.0.1:8899"
+        LEDGER_DIR="$LEDGER_DIR_INPUT"
+        if [ -z "$LEDGER_DIR" ]; then
+          LEDGER_DIR="${RUNNER_TEMP:-/tmp}/test-ledger"
+        fi
+
+        rm -rf "$LEDGER_DIR"
+        solana-test-validator --reset --quiet --ledger "$LEDGER_DIR" > "${RUNNER_TEMP:-/tmp}/validator-stdout.log" 2>&1 &
+        echo "Validator started with PID $!"
+
+        echo "rpc-url=$RPC_URL" >> "$GITHUB_OUTPUT"
+        echo "ledger-dir=$LEDGER_DIR" >> "$GITHUB_OUTPUT"
+
+    - name: Wait for validator health
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+      with:
+        timeout_seconds: 5
+        max_attempts: ${{ inputs.max-attempts }}
+        retry_wait_seconds: 1
+        command: solana cluster-version -u ${{ steps.start.outputs.rpc-url }}
+
+    - name: Dump validator logs if unhealthy
+      if: failure()
+      shell: bash
+      run: |
+        tail -50 "${RUNNER_TEMP:-/tmp}/validator-stdout.log" 2>/dev/null || true
+        tail -50 "${{ steps.start.outputs.ledger-dir }}/validator.log" 2>/dev/null || true

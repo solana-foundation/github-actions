@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RPC_URL="${RPC_URL:-http://127.0.0.1:8899}"
+FIXTURES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../fixtures" && pwd)"
+SCENARIO_DIR="${RUNNER_TEMP:-/tmp}/scenario-delta"
+MIN_EXTEND_SIZE=10240
+
+SMALL_SIZE=$(wc -c < "$FIXTURES_DIR/program-small.so" | tr -d ' ')
+MEDIUM_SIZE=$(wc -c < "$FIXTURES_DIR/program-medium.so" | tr -d ' ')
+DELTA=$((MEDIUM_SIZE - SMALL_SIZE))
+if [ "$DELTA" -le "$MIN_EXTEND_SIZE" ]; then
+  echo "Fixture drift: medium-small delta of $DELTA bytes must exceed $MIN_EXTEND_SIZE" >&2
+  exit 1
+fi
+
+mkdir -p "$SCENARIO_DIR" target/deploy
+
+solana-keygen new -s --no-bip39-passphrase --force -o "$SCENARIO_DIR/deployer.json" >/dev/null
+solana-keygen new -s --no-bip39-passphrase --force -o "$SCENARIO_DIR/program-id.json" >/dev/null
+DEPLOYER=$(solana-keygen pubkey "$SCENARIO_DIR/deployer.json")
+PROGRAM_ID=$(solana-keygen pubkey "$SCENARIO_DIR/program-id.json")
+
+for i in 1 2 3; do
+  solana airdrop 100 "$DEPLOYER" -u "$RPC_URL" && break
+  if [ "$i" -eq 3 ]; then
+    echo "Airdrop failed after 3 attempts" >&2
+    exit 1
+  fi
+  sleep 2
+done
+
+solana program deploy "$FIXTURES_DIR/program-small.so" \
+  --program-id "$SCENARIO_DIR/program-id.json" \
+  -u "$RPC_URL" -k "$SCENARIO_DIR/deployer.json" \
+  --commitment confirmed
+
+PRE_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1)
+if [ -z "$PRE_LEN" ]; then
+  echo "Could not read deployed program size" >&2
+  exit 1
+fi
+
+cp "$FIXTURES_DIR/program-medium.so" target/deploy/fixture-delta.so
+
+echo "Prepared delta scenario: deployer=$DEPLOYER program-id=$PROGRAM_ID pre-len=$PRE_LEN delta=$DELTA"
+{
+  echo "keypair=$(cat "$SCENARIO_DIR/deployer.json")"
+  echo "deployer=$DEPLOYER"
+  echo "program-id=$PROGRAM_ID"
+  echo "buffer-authority=$DEPLOYER"
+  echo "pre-len=$PRE_LEN"
+} >> "$GITHUB_OUTPUT"

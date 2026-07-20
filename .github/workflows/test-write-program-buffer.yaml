@@ -1,0 +1,72 @@
+name: Test write-program-buffer
+
+on:
+  pull_request:
+    paths:
+      - "write-program-buffer/**"
+      - "start-test-validator/**"
+      - "setup-all/**"
+      - ".github/workflows/test-write-program-buffer.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-write-program-buffer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    name: ${{ matrix.scenario }} (solana ${{ matrix.solana-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        solana-version: ["4.1.2"]
+        scenario: [fresh, delta, clamp, authority, nearmax]
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - uses: ./setup-all
+        with:
+          solana_version: ${{ matrix.solana-version }}
+
+      - name: Start local validator
+        id: validator
+        uses: ./start-test-validator
+
+      - name: Prepare scenario
+        id: prepare
+        shell: bash
+        env:
+          RPC_URL: ${{ steps.validator.outputs.rpc-url }}
+        run: ./write-program-buffer/tests/integration/prepare-${{ matrix.scenario }}.sh
+
+      - name: Run write-program-buffer action
+        id: run
+        uses: ./write-program-buffer
+        with:
+          program-id: ${{ steps.prepare.outputs.program-id }}
+          program: fixture-${{ matrix.scenario }}
+          rpc-url: ${{ steps.validator.outputs.rpc-url }}
+          keypair: ${{ steps.prepare.outputs.keypair }}
+          buffer-authority-address: ${{ steps.prepare.outputs.buffer-authority }}
+
+      - name: Assert scenario
+        shell: bash
+        env:
+          RPC_URL: ${{ steps.validator.outputs.rpc-url }}
+          BUFFER: ${{ steps.run.outputs.buffer }}
+          PROGRAM_ID: ${{ steps.prepare.outputs.program-id }}
+          DEPLOYER: ${{ steps.prepare.outputs.deployer }}
+          BUFFER_AUTHORITY: ${{ steps.prepare.outputs.buffer-authority }}
+          PRE_LEN: ${{ steps.prepare.outputs.pre-len }}
+        run: ./write-program-buffer/tests/integration/assert-${{ matrix.scenario }}.sh
+
+      - name: Dump validator logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          tail -100 "$RUNNER_TEMP/validator-stdout.log" || true
+          tail -100 "${{ steps.validator.outputs.ledger-dir }}/validator.log" || true

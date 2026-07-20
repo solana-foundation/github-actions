@@ -77,9 +77,10 @@ runs:
         echo "Verify: $EVENT_VERIFY"
         echo "Has keypair: $HAS_KEYPAIR"
 
+    # Writes the signer's verify PDA and queues a remote build. Runs for both squads and non-squads so the built hash is recorded before deploy and the buffer is resolvable via /resolve-hash
+    # In the squads flow this is separate from the program authority PDA tx exported below which the multisig executes itself
     - name: Verify Build
       shell: bash
-      if: inputs.use-squads == 'false'
       env:
         SKIP_BUILD: ${{ inputs.skip-build }}
         SKIP_PROMPT: ${{ inputs.skip-prompt }}
@@ -111,10 +112,6 @@ runs:
           ARGS="$ARGS --commit-hash $COMMIT_HASH"
         fi
 
-        if [ "$NETWORK" = "mainnet" ]; then
-          ARGS="$ARGS --remote"
-        fi
-
         if [ -n "$BASE_IMAGE" ]; then
           ARGS="$ARGS --base-image $BASE_IMAGE"
         fi
@@ -124,6 +121,7 @@ runs:
           CARGO_ARGS="-- --features $FEATURES_INPUT"
         fi
 
+        # With --skip-build this only uploads the PDA, the remote worker does the actual build
         solana-verify verify-from-repo \
           --program-id "$PROGRAM_ID" \
           --url "$RPC_URL" \
@@ -132,6 +130,18 @@ runs:
           $ARGS \
           "$REPO_URL" \
           $CARGO_ARGS
+
+        # Queue the remote build. Replaces the deprecated --remote flag and is mainnet only
+        if [ "$NETWORK" = "mainnet" ]; then
+          UPLOADER=$(solana-keygen pubkey ./deploy-keypair.json)
+          echo "Queuing remote verify job for program $PROGRAM_ID (uploader $UPLOADER)"
+          solana-verify remote submit-job \
+            --program-id "$PROGRAM_ID" \
+            --uploader "$UPLOADER" \
+            --url "$RPC_URL"
+        else
+          echo "Network is '$NETWORK', not mainnet; skipping remote submit-job (remote verification is mainnet-only)."
+        fi
 
     - name: Export PDA Transaction
       id: export-pda

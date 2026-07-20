@@ -407,6 +407,12 @@ npx ts-node scripts/squad-closebuffer.ts \
  --program "BhV84MZrRnEvtWLdWMRJGJr1GbusxfVMHAwc3pq92g4z"
 ```
 
+# Release v0.2.13
+
+## New Features
+
+- `verify-build`: write the signer's verify PDA and queue the remote build via `solana-verify remote submit-job` (mainnet only), replacing the deprecated `--remote` flag; the built hash is recorded before deploy so the buffer is resolvable via the osec `/resolve-hash` endpoint
+
 # Release v0.2.12
 
 ## New Features

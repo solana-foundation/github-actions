@@ -407,6 +407,18 @@ npx ts-node scripts/squad-closebuffer.ts \
  --program "BhV84MZrRnEvtWLdWMRJGJr1GbusxfVMHAwc3pq92g4z"
 ```
 
+# Release v0.2.12
+
+## New Features
+
+- `verify-build`: new `export-encoding` input (base58/base64) and `pda_tx` output for the exported verify PDA transaction
+- `metadata-upload`: export mode captures exported transactions into a new `tx` output (one per line, base58 default)
+- `verify-build`: pass `--base-image` and `--features` through build/verify
+
+## Bug Fixes
+
+- `write-program-buffer`: ensure program is extended by minimum 10,240 bytes
+
 # Release v0.2.11
 
 ## Repository

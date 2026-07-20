@@ -33,7 +33,12 @@ inputs:
   export-encoding:
     description: "Encoding for exported transactions (none, utf8, base58, base64)"
     required: false
-    default: "base64"
+    default: "base58"
+
+outputs:
+  tx:
+    description: "Exported transactions in the chosen encoding, one per line (only set if export is provided)"
+    value: ${{ steps.parse-export.outputs.tx }}
 
 runs:
   using: "composite"
@@ -78,15 +83,37 @@ runs:
             fi
           fi
 
-          if [ -n "${{ inputs.export }}" ]; then
-            CMD="$CMD --export ${{ inputs.export }}"
-            CMD="$CMD --export-encoding ${{ inputs.export-encoding }}"
+          if [ -z "${{ inputs.export }}" ]; then
+            echo "Running: $CMD"
+            NO_COLOR=1 $CMD
+            exit 0
           fi
 
+          CMD="$CMD --export ${{ inputs.export }}"
+          CMD="$CMD --export-encoding ${{ inputs.export-encoding }}"
+
           echo "Running: $CMD"
-          NO_COLOR=1 $CMD
+          set -o pipefail
+          NO_COLOR=1 $CMD | tee metadata-export.out
+
+    - name: Parse exported transactions
+      id: parse-export
+      if: inputs.export != ''
+      shell: bash
+      run: |
+        TXS=$(awk '/^\[Transaction #[0-9]+\]$/{getline; print}' metadata-export.out)
+        if [ -z "$TXS" ]; then
+          echo "Error: No exported transactions found in output"
+          exit 1
+        fi
+
+        {
+          echo "tx<<TX_EOF"
+          echo "$TXS"
+          echo "TX_EOF"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Cleanup
       if: always()
       shell: bash
-      run: rm -f ./deploy-keypair.json
+      run: rm -f ./deploy-keypair.json metadata-export.out

@@ -12,6 +12,8 @@ fail() {
 [ -n "${BUFFER:-}" ] || fail "action did not output a buffer address"
 [ -n "${BUFFER_AUTHORITY:-}" ] || fail "BUFFER_AUTHORITY env not set"
 [ -n "${DEPLOYER:-}" ] || fail "DEPLOYER env not set"
+[ -n "${PROGRAM_ID:-}" ] || fail "PROGRAM_ID env not set"
+[ -n "${PRE_LEN:-}" ] || fail "PRE_LEN env not set"
 
 BUFFER_INFO=$(solana program show "$BUFFER" -u "$RPC_URL")
 echo "$BUFFER_INFO"
@@ -20,9 +22,13 @@ AUTHORITY=$(echo "$BUFFER_INFO" | grep "Authority:" | awk '{print $2}' || true)
 [ "$AUTHORITY" = "$BUFFER_AUTHORITY" ] || fail "buffer authority is $AUTHORITY, expected $BUFFER_AUTHORITY"
 [ "$AUTHORITY" != "$DEPLOYER" ] || fail "buffer authority still equals the deployer"
 
+POST_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1 || true)
+[ -n "$POST_LEN" ] || fail "could not read data length of program $PROGRAM_ID"
+[ "$POST_LEN" -eq "$PRE_LEN" ] || fail "program was resized from $PRE_LEN to $POST_LEN bytes, expected no resize"
+
 DUMP="$(mktemp)"
 solana program dump "$BUFFER" "$DUMP" -u "$RPC_URL" || fail "could not dump buffer $BUFFER"
 cmp -s "$ARTIFACT" "$DUMP" || fail "buffer contents differ from artifact"
 rm -f "$DUMP"
 
-echo "Authority transfer assertions passed"
+echo "Authority transfer assertions passed: program stayed at $PRE_LEN bytes"

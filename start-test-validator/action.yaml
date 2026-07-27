@@ -34,7 +34,6 @@ runs:
           LEDGER_DIR="${RUNNER_TEMP:-/tmp}/test-ledger"
         fi
 
-        rm -rf "$LEDGER_DIR"
         solana-test-validator --reset --quiet --ledger "$LEDGER_DIR" > "${RUNNER_TEMP:-/tmp}/validator-stdout.log" 2>&1 &
         echo "Validator started with PID $!"
 

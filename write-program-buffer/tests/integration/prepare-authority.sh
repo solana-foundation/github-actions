@@ -28,12 +28,19 @@ solana program deploy "$FIXTURES_DIR/program-small.so" \
   -u "$RPC_URL" -k "$SCENARIO_DIR/deployer.json" \
   --commitment confirmed
 
+PRE_LEN=$(solana program show "$PROGRAM_ID" -u "$RPC_URL" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/' | cut -d ' ' -f1 || true)
+if [ -z "$PRE_LEN" ]; then
+  echo "Could not read deployed program size" >&2
+  exit 1
+fi
+
 cp "$FIXTURES_DIR/program-small.so" target/deploy/fixture-authority.so
 
-echo "Prepared authority scenario: deployer=$DEPLOYER program-id=$PROGRAM_ID authority-target=$AUTHORITY_TARGET"
+echo "Prepared authority scenario: deployer=$DEPLOYER program-id=$PROGRAM_ID authority-target=$AUTHORITY_TARGET pre-len=$PRE_LEN"
 {
   echo "keypair=$(cat "$SCENARIO_DIR/deployer.json")"
   echo "deployer=$DEPLOYER"
   echo "program-id=$PROGRAM_ID"
   echo "buffer-authority=$AUTHORITY_TARGET"
+  echo "pre-len=$PRE_LEN"
 } >> "$GITHUB_OUTPUT"

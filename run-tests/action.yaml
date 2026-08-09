@@ -15,6 +15,10 @@ inputs:
   features:
     description: "Features that will be passed into the test"
     required: false
+  package_manager:
+    description: "Package manager to use for installing JS dependencies"
+    required: false
+    default: "yarn"
 
 runs:
   using: "composite"
@@ -25,9 +29,13 @@ runs:
         path: ./node_modules/
         key: node-modules-${{ runner.os }}-build-v0.1-${{ inputs.anchor_version }}-${{ inputs.solana_version }}
 
+    - name: Install pnpm
+      if: inputs.package_manager == 'pnpm'
+      uses: pnpm/action-setup@v4
+
     - name: Install Node.js dependencies
       shell: bash
-      run: yarn install
+      run: ${{ inputs.package_manager }} install
 
     - name: Cache Cargo dependencies
       uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1

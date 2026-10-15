@@ -54,6 +54,10 @@ inputs:
     description: "Encoding for the exported PDA transaction (base58, base64)"
     required: false
     default: "base58"
+  remote-url:
+    description: "Remote verification server URL. Empty uses the OtterSec server for the cluster (mainnet or devnet)."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -93,6 +97,7 @@ runs:
         RPC_URL: ${{ inputs.rpc-url }}
         PROGRAM: ${{ inputs.program }}
         REPO_URL: ${{ inputs.repo-url }}
+        REMOTE_URL: ${{ inputs.remote-url }}
       run: |
         ARGS=""
 
@@ -131,16 +136,20 @@ runs:
           "$REPO_URL" \
           $CARGO_ARGS
 
-        # Queue the remote build. Replaces the deprecated --remote flag and is mainnet only
-        if [ "$NETWORK" = "mainnet" ]; then
+        # Queue the remote build. Replaces the deprecated --remote flag. solana-verify picks the
+        # server from the cluster's genesis hash unless remote-url is set.
+        if [ "$NETWORK" != "mainnet" ] && [ "$NETWORK" != "devnet" ] && [ -z "$REMOTE_URL" ]; then
+          echo "Network is '$NETWORK'; skipping remote submit-job. Set remote-url to submit to a verification server for it."
+        elif [ "$NETWORK" != "mainnet" ] && ! grep -q -- '--remote-url' <<< "$(solana-verify remote --help)"; then
+          echo "This solana-verify submits remote jobs only on mainnet; skipping remote submit-job on '$NETWORK'."
+        else
           UPLOADER=$(solana-keygen pubkey ./deploy-keypair.json)
           echo "Queuing remote verify job for program $PROGRAM_ID (uploader $UPLOADER)"
           solana-verify remote submit-job \
             --program-id "$PROGRAM_ID" \
             --uploader "$UPLOADER" \
-            --url "$RPC_URL"
-        else
-          echo "Network is '$NETWORK', not mainnet; skipping remote submit-job (remote verification is mainnet-only)."
+            --url "$RPC_URL" \
+            ${REMOTE_URL:+--remote-url "$REMOTE_URL"}
         fi
 
     - name: Export PDA Transaction

@@ -184,6 +184,8 @@ Generated client:
     - `dry-run`: Validate without publishing to npm
     - `check-version-available`: Fail early when this package version already exists on npm
     - `skip-existing`: Skip publishing successfully when this package version already exists on npm
+    - `provenance`: Publish with npm provenance attestations (default `true`). npm only accepts provenance from public repositories, so private repositories set `false`
+    - `require-dist`: Fail when the tarball has no `dist/` build artifacts (default `true`). Set `false` for packages that ship their sources
   - Outputs:
     - `package`: Published package name
     - `version`: Published package version

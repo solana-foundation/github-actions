@@ -33,6 +33,14 @@ inputs:
     description: "Skip publishing successfully when this package version already exists on npm."
     required: false
     default: "false"
+  provenance:
+    description: "Publish with npm provenance attestations. npm only accepts provenance from public repositories, so set false when publishing from a private one."
+    required: false
+    default: "true"
+  require-dist:
+    description: "Fail when the tarball has no dist/ build artifacts. Set false for packages that ship their sources (for example an ESLint plugin written in plain JavaScript)."
+    required: false
+    default: "true"
 outputs:
   package:
     description: "Published package name."
@@ -134,6 +142,7 @@ runs:
     - name: Validate tarball
       shell: bash
       env:
+        REQUIRE_DIST: ${{ inputs.require-dist }}
         TARBALL: ${{ steps.pack.outputs.tarball }}
       run: |
         set -euo pipefail
@@ -145,7 +154,7 @@ runs:
         fi
 
         CONTENTS="$(tar -tzf "$TARBALL")"
-        if ! grep -q '^package/dist/' <<< "$CONTENTS"; then
+        if [ "$REQUIRE_DIST" = "true" ] && ! grep -q '^package/dist/' <<< "$CONTENTS"; then
           echo "::error::Tarball does not contain any dist/ build artifacts."
           exit 1
         fi
@@ -201,11 +210,18 @@ runs:
       working-directory: ${{ inputs.package-directory }}
       env:
         DRY_RUN: ${{ inputs.dry-run }}
-        NPM_CONFIG_PROVENANCE: "true"
+        PROVENANCE: ${{ inputs.provenance }}
         TAG: ${{ steps.package.outputs.tag }}
         TARBALL: ${{ steps.pack.outputs.tarball }}
       run: |
         set -euo pipefail
+
+        if [ "$PROVENANCE" = "true" ]; then
+          export NPM_CONFIG_PROVENANCE=true
+        else
+          echo "::warning::Publishing without provenance attestations (provenance: false)."
+          export NPM_CONFIG_PROVENANCE=false
+        fi
 
         PUBLISH_ARGS=("$TARBALL" --access public --tag "$TAG")
         if [ "$DRY_RUN" = "true" ]; then

@@ -60,6 +60,10 @@ inputs:
     description: "Git commit hash to verify against"
     required: false
     default: ""
+  network:
+    description: "Target network (mainnet/devnet) for the verify PDA export; remote verification only runs on mainnet"
+    required: false
+    default: "mainnet"
 
 outputs:
   buffer:
@@ -183,7 +187,7 @@ runs:
         keypair: ${{ inputs.keypair }}
         repo-url: ${{ inputs.repo-url }}
         commit-hash: ${{ inputs.commit-hash }}
-        network: "mainnet"
+        network: ${{ inputs.network }}
         use-squads: "true"
         vault-address: ${{ inputs.squads-vault }}
 
